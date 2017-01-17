@@ -53,6 +53,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     _createClass(AccordionMenu, [{
       key: '_init',
       value: function _init() {
+        var _this = this;
+
         this.$element.find('[data-submenu]').not('.is-active').slideUp(0); //.find('a').css('padding-left', '1rem');
         this.$element.attr({
           'role': 'menu',
@@ -66,12 +68,18 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
               $sub = $elem.children('[data-submenu]'),
               subId = $sub[0].id || Foundation.GetYoDigits(6, 'acc-menu'),
               isActive = $sub.hasClass('is-active');
-          $elem.attr({
-            'aria-controls': subId,
-            'aria-expanded': isActive,
-            'role': 'menuitem',
-            'id': linkId
-          });
+
+          if (_this.options.submenuToggle) {
+            $elem.addClass('has-submenu-toggle');
+            $elem.children('a').after('<button id="' + linkId + '" class="submenu-toggle" aria-controls="' + subId + '" aria-expanded="' + isActive + '"><span class="submenu-toggle-text">' + _this.options.submenuToggleText + '</span></button>');
+          } else {
+            $elem.attr({
+              'aria-controls': subId,
+              'aria-expanded': isActive,
+              'role': 'menuitem',
+              'id': linkId
+            });
+          }
           $sub.attr({
             'aria-labelledby': linkId,
             'aria-hidden': !isActive,
@@ -103,11 +111,16 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
           var $submenu = $(this).children('[data-submenu]');
 
           if ($submenu.length) {
-            $(this).children('a').off('click.zf.accordionMenu').on('click.zf.accordionMenu', function (e) {
-              e.preventDefault();
-
-              _this.toggle($submenu);
-            });
+            if (_this.options.submenuToggle) {
+              $(this).children('.submenu-toggle').off('click.zf.accordionMenu').on('click.zf.accordionMenu', function (e) {
+                _this.toggle($submenu);
+              });
+            } else {
+              $(this).children('a').off('click.zf.accordionMenu').on('click.zf.accordionMenu', function (e) {
+                e.preventDefault();
+                _this.toggle($submenu);
+              });
+            }
           }
         }).on('keydown.zf.accordionmenu', function (e) {
           var $element = $(this),
@@ -239,7 +252,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
           this.up(this.$element.find('.is-active').not($target.parentsUntil(this.$element).add($target)));
         }
 
-        $target.addClass('is-active').attr({ 'aria-hidden': false }).parent('.is-accordion-submenu-parent').attr({ 'aria-expanded': true });
+        $target.addClass('is-active').attr({ 'aria-hidden': false });
+
+        if (this.options.submenuToggle) {
+          $target.prev('.submenu-toggle').attr({ 'aria-expanded': true });
+        } else {
+          $target.parent('.is-accordion-submenu-parent').attr({ 'aria-expanded': true });
+        }
 
         //Foundation.Move(this.options.slideSpeed, $target, function() {
         $target.slideDown(_this.options.slideSpeed, function () {
@@ -274,7 +293,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
         var $menus = $target.find('[data-submenu]').slideUp(0).addBack().attr('aria-hidden', true);
 
-        $menus.parent('.is-accordion-submenu-parent').attr('aria-expanded', false);
+        if (this.options.submenuToggle) {
+          $menus.prev('.submenu-toggle').attr('aria-expanded', false);
+        } else {
+          $menus.parent('.is-accordion-submenu-parent').attr('aria-expanded', false);
+        }
       }
 
       /**
@@ -288,6 +311,11 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         this.$element.find('[data-submenu]').slideDown(0).css('display', '');
         this.$element.find('a').off('click.zf.accordionMenu');
 
+        if (this.options.submenuToggle) {
+          this.$element.find('.has-submenu-toggle').removeClass('has-submenu-toggle');
+          this.$element.find('.submenu-toggle').remove();
+        }
+
         Foundation.Nest.Burn(this.$element, 'accordion');
         Foundation.unregisterPlugin(this);
       }
@@ -300,13 +328,27 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
     /**
      * Amount of time to animate the opening of a submenu in ms.
      * @option
-     * @example 250
+     * @type {number}
+     * @default 250
      */
     slideSpeed: 250,
     /**
-     * Allow the menu to have multiple open panes.
+     * Adds a separate submenu toggle button. This allows the parent item to have a link.
      * @option
      * @example true
+     */
+    submenuToggle: false,
+    /**
+     * The text used for the submenu toggle if enabled. This is used for screen readers only.
+     * @option
+     * @example true
+     */
+    submenuToggleText: 'Toggle menu',
+    /**
+     * Allow the menu to have multiple open panes.
+     * @option
+     * @type {boolean}
+     * @default true
      */
     multiOpen: true
   };
